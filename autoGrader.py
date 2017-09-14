@@ -128,6 +128,7 @@ class AutoGrader(ttk.Frame):
         import os.path
         import re
 
+        # Misc. initializations
         self.general_config_fname = "AutoGrader.config"
         self.specific_config_fname = "AutoGrader.specific.config"
         self.valid_file_fields = "stfej"  # [see one_time_setup()]
@@ -138,6 +139,14 @@ class AutoGrader(ttk.Frame):
         self.SAS_prog = os.path.join(SAS_loc, "sas.exe")
         self.active_letter_file = None
         self.re_points = re.compile("^[{]([-+0-9.]+)[}][ ]*([^ ]*)")
+
+        # Allow environmental variable to set starting directory if no
+        # configuration file is in the working directory.
+        files = os.listdir()
+        if "autoGrader.config" not in files:
+            self.start_loc = os.environ.get("AUTOGRADER_STARTLOC")
+            if self.start_loc is not None:
+                os.chdir(self.start_loc)
 
         # load configuration setups, each as a tuple of tuples
         self.general_config_setup = (
@@ -1075,6 +1084,8 @@ class AutoGrader(ttk.Frame):
         points_text = ''
         points_docked = 0.0
         textx = text.split("\n")
+
+        # Define comments for current programming language
         if ext in ('.R', '.RMD', '.PY'):
             re_comment = re.compile("^[:blank:]*#")
         elif ext == '.SAS':
@@ -1575,6 +1586,10 @@ class AutoGrader(ttk.Frame):
         return
 
     def setup_R_runstring(self, code, sandbox, index):
+        """
+        Setup R runstring and make needed generic
+        modifications to input code file.
+        """
         import os.path
         import re
         sand_name = self.versioned_filename[index]
@@ -1602,6 +1617,10 @@ class AutoGrader(ttk.Frame):
                       "\\1### ?", code)
         code = re.sub("(\\n[:blank:]*)help[(]",
                       "\\1### help(", code)
+        code = re.sub("pdf_document",
+                      "html_document", code)
+        code = re.sub("(w|W)ord_document",
+                      "html_document", code)
         self.write_text(code,
                         os.path.join(sandbox, sand_name))
 
@@ -1813,6 +1832,7 @@ class AutoGrader(ttk.Frame):
         self.cf_index = tk.IntVar()
         self.cf_radio_dict = {}
         self.cf_text_dict = {}
+        ### Need to init.gui when self.codefiles is None!!!!
         cf_n = len(self.codefiles)
         self.cf_index.set(0)
         self.cf_index.trace("w", self.choose_codefile)
@@ -1969,7 +1989,7 @@ class AutoGrader(ttk.Frame):
         self.output_analysis.insert(tk.END, "(No output analysis)")
 
         line += 1  # Close button
-        self.close_but = ttk.Button(self, text='Close',
+        self.close_but = ttk.Button(self, text='Exit autoGrader',
                                     command=self.root.destroy)
         self.close_but.grid(column=0, row=line, columnspan=max_span)
 
