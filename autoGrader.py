@@ -131,7 +131,7 @@ class AutoGrader(ttk.Frame):
         # Misc. initializations
         self.general_config_fname = "AutoGrader.config"
         self.specific_config_fname = "AutoGrader.specific.config"
-        self.valid_file_fields = "stfej"  # [see one_time_setup()]
+        self.valid_file_fields = "stfejl"  # [see one_time_setup()]
         self.max_codefiles = 10
         SAS_loc = os.environ.get("SAS_LOCATION")
         if SAS_loc is None:
@@ -230,14 +230,16 @@ class AutoGrader(ttk.Frame):
         instructions = \
             "'File format must be constructed from one unique separator\n" + \
             "character and '%f' for filename, '%t' for time/date stamp,\n" + \
-            "'%s' for student name, '%e' for email address, and '%j' for\n" + \
-            "junk (anything else).  Email or student name is required."
+            "'%s' for student name, '%e' for email address, '%j' for\n" + \
+            "junk (anything else), and '%l' for optional 'late'.  Email\n" + \
+            "or student name is required."
         chars = set([x for x in file_format])
         seps = [x for x in chars if x not in "%" + self.valid_file_fields]
 
         sep = seps[0] if len(seps) == 1 else "_"
         fmt = file_format.split(sep)
-        bad = [x[1:] not in self.valid_file_fields for x in fmt]
+        bad = [x[1:] not in self.valid_file_fields for x in fmt] or \
+            fmt[0] == "%l"
         inadequate = '%s' not in fmt and '%e' not in fmt
         if len(seps) != 1 or len(fmt) < 2 or any(bad) or inadequate:
             messagebox.showwarning("Bad 'File format' in general setup",
@@ -251,6 +253,11 @@ class AutoGrader(ttk.Frame):
         self.filename_separator = sep
         self.file_format_items = fmt
         self.student_name_in_file_format = ('%s' in fmt)
+        if '%l' in fmt:
+            self.late_index_in_file_format = fmt.index('%l')
+            self.file_format_items.remove('%l')
+        else:
+            self.late_index_in_file_format = -1
         return
 
     def construct_config(self, setup_tuple):
@@ -740,6 +747,7 @@ class AutoGrader(ttk.Frame):
         OK_files = [x.group(0) for x in OK_files if x is not None]
         all_matches = [self.parse_one_filename(f)['filename']
                        for f in OK_files]
+        all_matches = [re.sub("[.]r", ".R", x) for x in all_matches]
         nbad = len([x for x in all_matches if len(x) == 0])
         if nbad > 0:
             messagebox.showwarning("Bad file formats", "Ignored " + str(nbad) +
@@ -764,8 +772,13 @@ class AutoGrader(ttk.Frame):
         'student_name', and 'email' according to the value of the general
         configuration's 'file_format' and the corresponding % notation
         documented in one_time_setup().
+        Requires prior call to set_file_format_info() to set
+        'self.filename_separator', 'self.file_format_items',
+        'self.late_index_in_file_format', and
+        'self.student_name_in_file_format'.
+        Argument:
         'name': (str) a "segemented" file name according to 'file_format'
-        Requires prior call to set_file_format_info().
+                specifed by the user in the general configuration.
         """
         import re
         re_dotExt = re.compile("(.+)([.][a-zA-Z]+$)")
@@ -774,16 +787,29 @@ class AutoGrader(ttk.Frame):
         fmt_n = len(self.file_format_items)
         parts = name.split(self.filename_separator)
         name_n = len(parts)
+        file_format_items = self.file_format_items
 
         rtn = {'filename': '', 'version': 0, 'timestamp': '',
-               'student_name': '', 'email': ''}
+               'student_name': '', 'email': '', 'late': False}
+
+        # Handle optional "late" field
+        late_dropped = False
+        if self.late_index_in_file_format >= 0 and \
+                self.late_index_in_file_format <= name_n:
+            if parts[self.late_index_in_file_format].upper() == "LATE":
+                parts.remove(parts[self.late_index_in_file_format])
+                name_n -= 1
+                rtn['late'] = True
+                late_dropped = True
+
         if (name_n > fmt_n) or (name_n < fmt_n and name_n != 2):
             return rtn
 
-        short = True if name_n < fmt_n else False
+        # Extract information from fields
+        short = True if name_n < fmt_n and not late_dropped else False
         for element in range(name_n):
             field = ["%s", "%f"][element] if short else \
-                    self.file_format_items[element]
+                    file_format_items[element]
             value = parts[element]
             if field == "%j":
                 continue
@@ -1547,7 +1573,7 @@ class AutoGrader(ttk.Frame):
         if ext == ".R":
             (runstring, output_name) = self.setup_R_runstring(code, sandbox,
                                                               index)
-        if ext == ".RMD":
+        elif ext == ".RMD":
             (runstring, output_name) = self.setup_RMD_runstring(code, sandbox,
                                                                 index)
         elif ext == ".SAS":
@@ -1559,7 +1585,7 @@ class AutoGrader(ttk.Frame):
 
         # Run the code in the sandbox
         os.chdir(sandbox)
-        if runstring is str:
+        if type(runstring) is str:
             code = subprocess.run(runstring, shell=True)
         else:
             codes = []
