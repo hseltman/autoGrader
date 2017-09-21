@@ -5,6 +5,7 @@
 *.lst
 *.log
 *.config
+*.nb.html
 !autoGrader.py
 BACKUP/
 solutions/
@@ -20,3 +21,8 @@ __pycache__/
 *.csv
 .Rproj.user/
 autoGrader.Rproj
+Shell.lnk
+autoGrader.confi
+f2.*
+simpleSim.*
+
