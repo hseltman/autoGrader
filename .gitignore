@@ -25,4 +25,9 @@ Shell.lnk
 autoGrader.confi
 f2.*
 simpleSim.*
+f2_cache/
+f2_files/
+simpleSim_cache/
+simpleSim_files/
+
 
