@@ -179,7 +179,10 @@ class AutoGrader(ttk.Frame):
                  ('prohib_code', 'Prohibited code:', 'box', (5, 80), ''),
                  ('prohib_output', 'Prohibited output:', 'box',
                   (5, 80), ''),
-                 ('total_points', 'total_points', 'int', None, 100)
+                 ('pdf_output', 'Attempt pdf output (y/n):', 'line', 1, 'y'),
+                 ('total_points', 'total_points', 'int', None, 100),
+                 ('code_prepend', 'Code to prepend:', 'box', (3, 50), ''),
+                 ('code_append', 'Code to append:', 'box', (3, 50), ''),
                 )
 
         # Initialize global general configuration from setup tuple, then
@@ -219,6 +222,7 @@ class AutoGrader(ttk.Frame):
         # file_format not yet decoded; roster not yet read
         self.filename_separator = None
         self.roster_id = None
+        self.current_code = None
         return
 
     def set_file_format_info(self, file_format):
@@ -402,7 +406,7 @@ class AutoGrader(ttk.Frame):
     def set_specific_configs(self):
         """
         Generate self.specific_configs, a dictionary of specific configuration
-        dictionaries, one for each codefile, based specific configuration
+        dictionaries, one for each codefile, based on specific configuration
         files found in the current directory or generated from user defaults
         (hardcoded and then overridded by any global specific configuration
         file).
@@ -522,8 +526,6 @@ class AutoGrader(ttk.Frame):
         self.get_student_files(forceFirst=True)
         if len(self.student_name) == 0:
             self.current_code = None
-        else:
-            self.current_code = self.get_text(self.fullname[0])
 
         if self.codefiles is None:
             self.codefile = None
@@ -1377,7 +1379,7 @@ class AutoGrader(ttk.Frame):
                                 logx[i+3][0] != ">":
                             temp += logx[i+3] + "\n"
                 warning_lines.append(temp)
-            ignore_re = re.compile("package .* was built under R version")
+            ignore_re = re.compile("registry customizations")
             ignore_nums = [num for (num, txt) in enumerate(warning_lines)
                            if ignore_re.search(txt) is not None]
             warning_lines = self.multi_drop(warning_lines, ignore_nums)
@@ -1671,13 +1673,22 @@ class AutoGrader(ttk.Frame):
     def setup_SAS_runstring(self, code, sandbox, index):
         # http://www2.sas.com/proceedings/forum2008/017-2008.pdf
         import os.path
-#        import re
+        import re
         sand_name = self.versioned_filename[index]
         output_name = os.path.join(sandbox, sand_name + "out")
-#        code = re.sub("(\\n[:blank:]*)([?])",
-#                      "\\1### ?", code)
-#        code = re.sub("(\\n[:blank:]*)help[(]",
-#                      "\\1### help(", code)
+        code = re.sub("(\\n\\s*)(%LET\\s+WD\\s*=.*;)",
+                      "\\1%LET WD=.;", code, flags=re.IGNORECASE)
+        config = self.specific_configs[self.codefile + ".config"]
+        to_pdf = config["pdf_output"].strip().upper()
+        if to_pdf == "Y":
+            code = "ODS PDF FILE='" + self.versioned_filename[index] + \
+                   ".pdf';\n" + code + "ODS PDF CLOSE;"
+        prepend = config["code_prepend"].strip()
+        if prepend != "":
+            code = prepend + "\n" + code
+        append = config["code_append"].strip()
+        if append != "":
+            code = code + append + "\n"
         self.write_text(code,
                         os.path.join(sandbox, sand_name))
 
@@ -1685,6 +1696,10 @@ class AutoGrader(ttk.Frame):
                      ' -ICON -NOSPLASH -NONEWS -LOG ' + \
                      sand_name + 'log -PRINT ' + sand_name + "out"
         runstring = '"' + self.SAS_prog + '" ' + inoutfiles
+        if to_pdf == "Y":
+            cwd = os.getcwd()
+            runstring = [runstring, 'start ' + 
+                         os.path.join(cwd, sandbox, sand_name + '.pdf')]
         return (runstring, output_name)
 
     def get_dir_name(self, index):
