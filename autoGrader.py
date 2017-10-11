@@ -1115,9 +1115,9 @@ class AutoGrader(ttk.Frame):
 
         # Define comments for current programming language
         if ext in ('.R', '.RMD', '.PY'):
-            re_comment = re.compile("^[:blank:]*#")
+            re_comment = re.compile("^\\s*#")
         elif ext == '.SAS':
-            re_comment = re.compile("^[:blank:]*[/][*]")
+            re_comment = re.compile("^\\s*[/][*]")
         else:
             messagebox.showwarning("Programmer error", "in pre_analyze")
         comment_count = sum([re_comment.search(s) is not None for s in textx])
@@ -1125,7 +1125,7 @@ class AutoGrader(ttk.Frame):
                   str(config['min_comments']) + " / " + \
                   str(comment_count) + "\n"
 
-        re_blank = re.compile("^[:blank:]*$")
+        re_blank = re.compile("^\\s*$")
         blank_count = sum([re_blank.match(s) is not None for s in textx])
         result += "Desired / actual blanks = " + str(config['min_blanks']) + \
                   " / " + str(blank_count) + "\n\n"
@@ -1622,10 +1622,19 @@ class AutoGrader(ttk.Frame):
         import re
         sand_name = self.versioned_filename[index]
         output_name = os.path.join(sandbox, sand_name + "out")
-        code = re.sub("(\\n[:blank:]*)([?])",
+        code = re.sub("((^|\\n)[:blank:]*)([?])",
                       "\\1### ?", code)
-        code = re.sub("(\\n[:blank:]*)help[(]",
+        code = re.sub("((^|\\n)[:blank:]*)help[(]",
                       "\\1### help(", code)
+
+        config = self.specific_configs[self.codefile + ".config"]
+        prepend = config["code_prepend"].strip()
+        if prepend != "":
+            code = prepend + "\n" + code
+        append = config["code_append"].strip()
+        if append != "":
+            code = code + append + "\n"
+
         self.write_text(code,
                         os.path.join(sandbox, sand_name))
 
@@ -1641,14 +1650,31 @@ class AutoGrader(ttk.Frame):
         sand_name = self.versioned_filename[index]
         output_name = os.path.join(sandbox, sand_name + ".out")
         base_name = sand_name[:-4]
-        code = re.sub("(\\n[:blank:]*)([?])",
+        code = re.sub("((^|\\n)[:blank:]*)([?])",
                       "\\1### ?", code)
-        code = re.sub("(\\n[:blank:]*)help[(]",
+        code = re.sub("((^|\\n)[:blank:]*)help[(]",
                       "\\1### help(", code)
         code = re.sub("pdf_document",
                       "html_document", code)
         code = re.sub("(w|W)ord_document",
                       "html_document", code)
+
+        config = self.specific_configs[self.codefile + ".config"]
+        prepend = config["code_prepend"].strip()
+        if prepend != "":
+            firstR_re = re.compile("\\n\\s*```\\s*[{]\\s*(r|R)")
+            firstR = firstR_re.search(code)
+            if firstR is None or firstR.span(0)[0] == 0:
+                # Add popup message
+                return
+            firstR = firstR.span(0)[0]
+            code = code[:firstR+2] + "```{r autoGrader Prepend}\n" + \
+                prepend + "\n```\n\n" + code[firstR+2:]
+        append = config["code_append"].strip()
+        if append != "":
+            code = code + "\n```{r autoGrader Append}\n" + append + \
+                   "\n```\n"
+
         self.write_text(code,
                         os.path.join(sandbox, sand_name))
 
@@ -1676,13 +1702,13 @@ class AutoGrader(ttk.Frame):
         import re
         sand_name = self.versioned_filename[index]
         output_name = os.path.join(sandbox, sand_name + "out")
-        code = re.sub("(\\n\\s*)(%LET\\s+WD\\s*=.*;)",
+        code = re.sub("((^|\\n)\\s*)(%LET\\s+WD\\s*=.*;)",
                       "\\1%LET WD=.;", code, flags=re.IGNORECASE)
         config = self.specific_configs[self.codefile + ".config"]
         to_pdf = config["pdf_output"].strip().upper()
         if to_pdf == "Y":
             code = "ODS PDF FILE='" + self.versioned_filename[index] + \
-                   ".pdf';\n" + code + "ODS PDF CLOSE;"
+                   "." + sandbox + ".pdf';\n" + code + "ODS PDF CLOSE;"
         prepend = config["code_prepend"].strip()
         if prepend != "":
             code = prepend + "\n" + code
@@ -1698,8 +1724,9 @@ class AutoGrader(ttk.Frame):
         runstring = '"' + self.SAS_prog + '" ' + inoutfiles
         if to_pdf == "Y":
             cwd = os.getcwd()
-            runstring = [runstring, 'start ' + 
-                         os.path.join(cwd, sandbox, sand_name + '.pdf')]
+            runstring = [runstring, 'start ' +
+                         os.path.join(cwd, sandbox,
+                                      sand_name + '.' + sandbox + '.pdf')]
         return (runstring, output_name)
 
     def get_dir_name(self, index):
