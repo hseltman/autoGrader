@@ -797,7 +797,7 @@ class AutoGrader(ttk.Frame):
         # Handle optional "late" field
         late_dropped = False
         if self.late_index_in_file_format >= 0 and \
-                self.late_index_in_file_format <= name_n:
+                self.late_index_in_file_format < name_n:
             if parts[self.late_index_in_file_format].upper() == "LATE":
                 parts.remove(parts[self.late_index_in_file_format])
                 name_n -= 1
