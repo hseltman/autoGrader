@@ -1633,7 +1633,7 @@ class AutoGrader(ttk.Frame):
             code = prepend + "\n" + code
         append = config["code_append"].strip()
         if append != "":
-            code = code + append + "\n"
+            code = code + "\n" + append + "\n"
 
         self.write_text(code,
                         os.path.join(sandbox, sand_name))
@@ -1708,13 +1708,15 @@ class AutoGrader(ttk.Frame):
         to_pdf = config["pdf_output"].strip().upper()
         if to_pdf == "Y":
             code = "ODS PDF FILE='" + self.versioned_filename[index] + \
-                   "." + sandbox + ".pdf';\n" + code + "ODS PDF CLOSE;"
+                   "." + sandbox + ".pdf';\n" + code
         prepend = config["code_prepend"].strip()
         if prepend != "":
             code = prepend + "\n" + code
         append = config["code_append"].strip()
         if append != "":
-            code = code + append + "\n"
+            code = code + "\n" + append + "\n"
+        if to_pdf == "Y":
+            code = code + "ODS PDF CLOSE;"
         self.write_text(code,
                         os.path.join(sandbox, sand_name))
 
