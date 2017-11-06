@@ -138,7 +138,7 @@ class AutoGrader(ttk.Frame):
             SAS_loc = "C:\Program Files\SasHome\SASFOUNDATION\9.4"
         self.SAS_prog = os.path.join(SAS_loc, "sas.exe")
         self.active_letter_file = None
-        self.re_points = re.compile("^[{]([-+0-9.]+)[}][ ]*([^ ]*)")
+        self.re_points = re.compile("^[{]([-+]?[0-9.]+)[}][ ]*([^ ]+.*$)")
 
         # Allow environmental variable to set starting directory if no
         # configuration file is in the working directory.
@@ -1998,25 +1998,25 @@ class AutoGrader(ttk.Frame):
         self.sbl = tk.Scrollbar(self.letter_frame)
 
         self.input = tk.Text(self.input_frame, bg="lightblue",
-                             width=self.nb_cwidth, height=40,
+                             width=self.nb_cwidth, height=41,
                              yscrollcommand=self.sbi.set)
         self.input_analysis = tk.Text(self.input_analysis_frame,
                                       bg="lightblue",
-                                      width=self.nb_cwidth, height=40,
+                                      width=self.nb_cwidth, height=41,
                                       yscrollcommand=self.sbia.set)
         self.messages = tk.Text(self.messages_frame, bg="lightblue",
-                                width=self.nb_cwidth, height=40,
+                                width=self.nb_cwidth, height=41,
                                 yscrollcommand=self.sbm.set)
         self.output = tk.Text(self.output_frame, bg="lightblue",
-                              width=self.nb_cwidth, height=40,
+                              width=self.nb_cwidth, height=41,
                               yscrollcommand=self.sbo.set)
         self.output_analysis = tk.Text(self.output_analysis_frame,
                                        bg="lightblue",
-                                       width=self.nb_cwidth, height=40,
+                                       width=self.nb_cwidth, height=41,
                                        yscrollcommand=self.sboa.set)
         self.letter = tk.Text(self.letter_frame,
                               bg="lightblue",
-                              width=self.nb_cwidth, height=40,
+                              width=self.nb_cwidth, height=41,
                               yscrollcommand=self.sbl.set)
 
         self.sbi.grid(row=0, column=1, sticky="ens")
