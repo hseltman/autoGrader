@@ -1817,7 +1817,7 @@ class AutoGrader(ttk.Frame):
         if text is None:
             tabname.insert(tk.END, default)
         else:
-            tabname.insert(tk.END, text)
+            tabname.insert(tk.END, text+"\n\n\n")
         if disabled:
             tabname.configure(state='disabled')
         return text
