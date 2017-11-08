@@ -1791,8 +1791,10 @@ class AutoGrader(ttk.Frame):
             self.read_roster()
 
     def get_text(self, filename):
+        import codecs
         try:
-            with open(filename, 'r') as myfile:
+            with codecs.open(filename, 'r', encoding='utf-8',
+                             errors='ignore') as myfile:
                 text = myfile.read()
         except IOError:
             text = None
