@@ -1622,6 +1622,8 @@ class AutoGrader(ttk.Frame):
         import re
         sand_name = self.versioned_filename[index]
         output_name = os.path.join(sandbox, sand_name + "out")
+        # Students tend to put help() or ? in code.
+        # We want to remove that.
         code = re.sub("((^|\\n)[:blank:]*)([?])",
                       "\\1### ?", code)
         code = re.sub("((^|\\n)[:blank:]*)help[(]",
@@ -1829,10 +1831,16 @@ class AutoGrader(ttk.Frame):
         ignore this request if the directory does not exist.
         """
         import os.path
+        import re
+
         if directory is not None:
             fname = os.path.join(directory, fname)
         if not os.path.exists(os.path.dirname(fname)):
             return
+
+        # Somehow carriage returns are sneaking in and
+        # causing problems in R.
+        text = re.sub("\r+\n", "\n", text)
 
         with open(fname, 'w') as out:
             try:
