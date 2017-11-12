@@ -7,8 +7,8 @@ import tkinter as tk
 import tkinter.ttk as ttk
 from tkinter import messagebox
 from tkinter import filedialog
-from tkSimpleDialog import Dialog
-
+# from tkSimpleDialog import Dialog
+from tkinter.simpledialog import Dialog
 
 class AutoGrader(ttk.Frame):
     """
@@ -1581,10 +1581,10 @@ class AutoGrader(ttk.Frame):
         elif ext == ".SAS":
             (runstring, output_name) = self.setup_SAS_runstring(code, sandbox,
                                                                 index)
-        elif ext == ".py":
-            (runstring, output_name) = self.setup_pyton_runstring(code,
-                                                                  sandbox,
-                                                                  index)
+        elif ext == ".PY":
+            (runstring, output_name) = self.setup_python_runstring(code,
+                                                                   sandbox,
+                                                                   index)
         else:
             print("not coded yet")
             return
@@ -1764,7 +1764,7 @@ class AutoGrader(ttk.Frame):
         self.write_text(code,
                         os.path.join(sandbox, sand_name))
 
-        inoutfiles = '<"' + sand_name + '"' + ' ">' + sand_name + 'out"'
+        inoutfiles = '< "' + sand_name + '"' + '> "' + sand_name + 'out"'
         runstring = 'python ' + inoutfiles
         return (runstring, output_name)
 
