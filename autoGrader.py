@@ -1581,6 +1581,10 @@ class AutoGrader(ttk.Frame):
         elif ext == ".SAS":
             (runstring, output_name) = self.setup_SAS_runstring(code, sandbox,
                                                                 index)
+        elif ext == ".py":
+            (runstring, output_name) = self.setup_pyton_runstring(code,
+                                                                  sandbox,
+                                                                  index)
         else:
             print("not coded yet")
             return
@@ -1731,6 +1735,37 @@ class AutoGrader(ttk.Frame):
             runstring = [runstring, 'start ' +
                          os.path.join(cwd, sandbox,
                                       sand_name + '.' + sandbox + '.pdf')]
+        return (runstring, output_name)
+
+    def setup_python_runstring(self, code, sandbox, index):
+        """
+        Setup python runstring and make needed generic
+        modifications to input code file.
+        """
+        import os.path
+        import re
+        sand_name = self.versioned_filename[index]
+        output_name = os.path.join(sandbox, sand_name + "out")
+        # Students tend to put dir() or ? in code.
+        # We want to remove that.
+        code = re.sub("((^|\\n)[:blank:]*)([?])",
+                      "\\1### ?", code)
+        code = re.sub("((^|\\n)[:blank:]*)help[(]",
+                      "\\1### dir(", code)
+
+        config = self.specific_configs[self.codefile + ".config"]
+        prepend = config["code_prepend"].strip()
+        if prepend != "":
+            code = prepend + "\n" + code
+        append = config["code_append"].strip()
+        if append != "":
+            code = code + "\n" + append + "\n"
+
+        self.write_text(code,
+                        os.path.join(sandbox, sand_name))
+
+        inoutfiles = '<"' + sand_name + '"' + ' ">' + sand_name + 'out"'
+        runstring = 'python ' + inoutfiles
         return (runstring, output_name)
 
     def get_dir_name(self, index):
