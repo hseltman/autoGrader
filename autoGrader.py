@@ -7,8 +7,9 @@ import tkinter as tk
 import tkinter.ttk as ttk
 from tkinter import messagebox
 from tkinter import filedialog
-# from tkSimpleDialog import Dialog
-from tkinter.simpledialog import Dialog
+from tkSimpleDialog import Dialog
+# from tkinter.simpledialog import Dialog
+
 
 class AutoGrader(ttk.Frame):
     """
@@ -138,7 +139,7 @@ class AutoGrader(ttk.Frame):
             SAS_loc = "C:\Program Files\SasHome\SASFOUNDATION\9.4"
         self.SAS_prog = os.path.join(SAS_loc, "sas.exe")
         self.active_letter_file = None
-        self.re_points = re.compile("^[{]([-+]?[0-9.]+)[}][ ]*([^ ]+.*$)")
+        self.re_points = re.compile("^[{]([-+]?[0-9.]+?)[}][ ]*([^ ]+.*$)")
 
         # Allow environmental variable to set starting directory if no
         # configuration file is in the working directory.
@@ -1043,9 +1044,9 @@ class AutoGrader(ttk.Frame):
             return
         student_index = self.file_label.index(who)
         if who == self.chosen_file.get():
-            current_code = self.current_code
+            current_code = self.current_code + "\n"
         else:
-            current_code = self.get_text(self.fullname[student_index])
+            current_code = self.get_text(self.fullname[student_index]) + "\n"
 
         # create sandbox if needed
         sandbox = self.get_dir_name(student_index)
@@ -1184,6 +1185,10 @@ class AutoGrader(ttk.Frame):
             (post_analysis_points_docked, post_analysis_points_text) = \
                 self.SAS_post_analyze(sandbox, codefile, outfile, text, config,
                                       file_label)
+        elif ext in ('.PY'):
+            (post_analysis_points_docked, post_analysis_points_text) = \
+                self.PY_post_analyze(sandbox, codefile, outfile, text, config,
+                                     file_label)
         else:
             messagebox.showwarning("Missing feature", "post for " + ext)
             (post_analysis_points_docked, post_analysis_points_text) = (0, '')
@@ -1398,6 +1403,7 @@ class AutoGrader(ttk.Frame):
         out_analysis += temp
         points_text += temp
 
+        # Check for required and prohibited output
         (pts, temp) = self.req_and_prohib(config, text, "output")
         out_analysis += temp
         if pts is not None:
@@ -1429,10 +1435,58 @@ class AutoGrader(ttk.Frame):
             # self.letter.insert(tk.END, letter)
         return (points_docked, points_text)
 
+    def PY_post_analyze(self, sandbox, codefile, outfile, text, config,
+                        file_label):
+        """ Analyze results from submitting python code """
+        # import re
+        import os.path
+
+        # textx = text.split("\n")
+        out_analysis = ''
+        messages = ''
+        points_text = ''
+        points_docked = 0.0
+
+        # Put errors to "messages" tab
+        error_file = os.path.join(sandbox, codefile + 'err')
+        messages = self.get_text(error_file)
+
+        # Check for required and prohibited output
+        (pts, temp) = self.req_and_prohib(config, text, "output")
+        out_analysis += temp
+        if pts is not None:
+            points_docked += pts
+
+        # Save and display messages and post-analysis
+        if messages == '':
+            messages = '(no warnings or errors)'
+        if out_analysis == '':
+            out_analysis = '(no output problems)'
+        msg = os.path.join(sandbox, codefile + "msg")
+        self.write_text(messages, msg)
+        pst = os.path.join(sandbox, codefile + "pst")
+        self.write_text(out_analysis, pst)
+        # self.write_text(letter, self.active_letter_file)
+        if file_label == self.chosen_file.get():
+            self.messages.configure(state='normal')
+            self.messages.delete(1.0, tk.END)
+            self.messages.insert(tk.END, messages)
+            self.messages.configure(state='disabled')
+            self.output_analysis.configure(state="normal")
+            self.output_analysis.delete(1.0, tk.END)
+            self.output_analysis.insert(tk.END, out_analysis)
+            self.output_analysis.configure(state="disabled")
+            # self.letter.delete(1.0, tk.END)
+            # self.letter.insert(tk.END, letter)
+        return (points_docked, points_text)
+
     def req_and_prohib(self, config, text, code_or_output):
         """ Write output concerning required and prohibited text """
         # Check for required output
         import re
+        # Change '\r\n' to '\n' to facilate using search for '\n', because
+        # '^' and '$' will not work on this multiline single text string.
+        text = re.sub('\r\n', '\n', text)
         out_analysis = ''
         points_docked = 0.0
         item = 'req_' + code_or_output
@@ -1764,7 +1818,8 @@ class AutoGrader(ttk.Frame):
         self.write_text(code,
                         os.path.join(sandbox, sand_name))
 
-        inoutfiles = '< "' + sand_name + '"' + '> "' + sand_name + 'out"'
+        inoutfiles = '< "' + sand_name + '"' + '1> "' + sand_name + 'out"' +\
+            '2> "' + sand_name + 'err"'
         runstring = 'python ' + inoutfiles
         return (runstring, output_name)
 
