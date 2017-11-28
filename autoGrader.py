@@ -1644,6 +1644,8 @@ class AutoGrader(ttk.Frame):
             return
 
         # Run the code in the sandbox
+        # https://stackoverflow.com/questions/4760215/running-shell-command-
+        #         from-python-and-capturing-the-output
         os.chdir(sandbox)
         if type(runstring) is str:
             code = subprocess.run(runstring, shell=True)
@@ -1886,7 +1888,7 @@ class AutoGrader(ttk.Frame):
         import codecs
         try:
             with codecs.open(filename, 'r', encoding='utf-8',
-                             errors='ignore') as myfile:
+                             errors='replace') as myfile:
                 text = myfile.read()
         except IOError:
             text = None
@@ -1922,6 +1924,7 @@ class AutoGrader(ttk.Frame):
         """
         import os.path
         import re
+        import codecs
 
         if directory is not None:
             fname = os.path.join(directory, fname)
@@ -1932,12 +1935,13 @@ class AutoGrader(ttk.Frame):
         # causing problems in R.
         text = re.sub("\r+\n", "\n", text)
 
-        with open(fname, 'w') as out:
-            try:
+        try:
+            with codecs.open(fname, 'w', encoding='utf-8',
+                             errors='replace') as out:
                 out.write(text)
-            except IOError:
-                messagebox.showwarning("File write error",
-                                       "Could not write " + fname)
+        except IOError:
+            messagebox.showwarning("File write error",
+                                   "Could not write " + fname)
         return
 
     def specific_config_dialog(self):
