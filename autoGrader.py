@@ -439,6 +439,8 @@ class AutoGrader(ttk.Frame):
         """
         import time
         import os.path
+        import re
+
         text = []
         try:
             fh = open(fname, 'r')
@@ -461,13 +463,14 @@ class AutoGrader(ttk.Frame):
         text = text.split("\n\n")
         text = [t for t in text if len(t) > 0]
         for line in text:
-            colon = line.find(":")
-            if colon == -1:
+            re.header = re.compile("^\s*([a-zA-Z_0-9]+):\s*((.|\n)*)")
+            colon = re.header.search(line)
+            if colon is None:
                 messagebox.showwarning("Bad file format",
                                        "Missing colon in " + fname)
                 return
-            id = line[:colon].strip()
-            value = line[colon + 1:].strip()
+            id = colon.groups()[0]
+            value = colon.groups()[1]
             if value == '':
                 value = ' '
             if value[-1] == "\n":
@@ -1811,9 +1814,13 @@ class AutoGrader(ttk.Frame):
 
         config = self.specific_configs[self.codefile + ".config"]
         prepend = config["code_prepend"].strip()
+        prepend = re.sub("[*]{4}", "    ", prepend)
+        prepend = re.sub("[*]{8}", "        ", prepend)
         if prepend != "":
             code = prepend + "\n" + code
         append = config["code_append"].strip()
+        append = re.sub("[*]{4}", "    ", append)
+        append = re.sub("[*]{8}", "        ", append)
         if append != "":
             code = code + "\n" + append + "\n"
 
