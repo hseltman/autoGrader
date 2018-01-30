@@ -147,7 +147,11 @@ class AutoGrader(ttk.Frame):
         if "autoGrader.config" not in files:
             self.start_loc = os.environ.get("AUTOGRADER_STARTLOC")
             if self.start_loc is not None:
-                os.chdir(self.start_loc)
+                try:
+                    os.chdir(self.start_loc)
+                except FileNotFoundError:
+                    raise(Exception("Fix the Environmental Variable " +
+                                    "'AUTOGRADER_STARTLOC' and try again"))
 
         # load configuration setups, each as a tuple of tuples
         self.general_config_setup = (
@@ -1516,7 +1520,7 @@ class AutoGrader(ttk.Frame):
                     else:
                         adj = "avoided"
                     out_analysis += str(points) + " points for " + adj + \
-                        " output: " + line + "\n"
+                        " " + code_or_output + ": " + line + "\n"
                     points_docked += points
 
         # Check for prohibited output
