@@ -1509,7 +1509,12 @@ class AutoGrader(ttk.Frame):
                     continue
                 ok = line[1:-2] in text
             else:
-                req_re = re.compile(line)
+                try:
+                    req_re = re.compile(line)
+                except re.error:
+                    messagebox.showwarning("Cannot create regular expression",
+                                           line + "is invalid")
+                    return (-9999, "Bad Regular expression")
                 ok = req_re.search(text)
             if not ok:
                 if points is None:
@@ -1777,7 +1782,7 @@ class AutoGrader(ttk.Frame):
         to_pdf = config["pdf_output"].strip().upper()
         if to_pdf == "Y":
             code = "ODS PDF FILE='" + self.versioned_filename[index] + \
-                   "." + sandbox + ".pdf';\n" + code
+                   "." + sandbox + ".pdf';\nODS GRAPHICS ON;\n" + code
         prepend = config["code_prepend"].strip()
         if prepend != "":
             code = prepend + "\n" + code
