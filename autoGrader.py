@@ -179,11 +179,12 @@ class AutoGrader(ttk.Frame):
                  ('min_blanks', 'Min. blanks:', 'int', None, 5),
                  ('max_warnings', 'Max. warnings:', 'int', None, 0),
                  ('max_errors', 'Max. errors:', 'int', None, 0),
-                 ('req_code', 'Required code:', 'box', (5, 80), ''),
-                 ('req_output', 'Required output:', 'box', (5, 80), ''),
-                 ('prohib_code', 'Prohibited code:', 'box', (5, 80), ''),
+                 ('req_code', 'Required code:', 'box', (4, 80), ''),
+                 ('req_output', 'Required output:', 'box', (4, 80), ''),
+                 ('prohib_code', 'Prohibited code:', 'box', (4, 80), ''),
                  ('prohib_output', 'Prohibited output:', 'box',
-                  (5, 80), ''),
+                  (4, 80), ''),
+                 ('dropped_messages', 'Dropped messages:', 'box', (2, 80), ''),
                  ('pdf_output', 'Attempt pdf output (y/n):', 'line', 1, 'y'),
                  ('total_points', 'total_points', 'int', None, 100),
                  ('code_prepend', 'Code to prepend:', 'box', (3, 50), ''),
@@ -1110,7 +1111,7 @@ class AutoGrader(ttk.Frame):
         return (points, line)
 
     def pre_analyze(self, text, sandbox, index):
-        """ Analyze submitted R code before running it """
+        """ Analyze submitted code before running it """
         import re
         import os.path
         codefile = self.codefile
@@ -1391,7 +1392,13 @@ class AutoGrader(ttk.Frame):
                                 logx[i+3][0] != ">":
                             temp += logx[i+3] + "\n"
                 warning_lines.append(temp)
-            ignore_re = re.compile("registry customizations")
+            # extend ignore to 'dropped_messages' (4/24/2018)
+            ignore_text = "registry customizations"
+            dropped_messages = config['dropped_messages'].strip()
+            if len(dropped_messages) > 0:
+                ignore_text = "|".join([ignore_text] +
+                                       dropped_messages.split('\n'))
+            ignore_re = re.compile(ignore_text)
             ignore_nums = [num for (num, txt) in enumerate(warning_lines)
                            if ignore_re.search(txt) is not None]
             warning_lines = self.multi_drop(warning_lines, ignore_nums)
